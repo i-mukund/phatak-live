@@ -12,7 +12,9 @@ export const metadata: Metadata = {
   appleWebApp: {
     capable: true,
     title: 'Phaatak',
-    statusBarStyle: 'black-translucent',
+    // `default` lets iOS pick a legible status bar for the active theme;
+    // `black-translucent` assumes a dark app and hides the text on light.
+    statusBarStyle: 'default',
   },
   formatDetection: { telephone: false },
   icons: {
@@ -30,7 +32,12 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: '#08090c',
+  // Browser chrome follows the system theme too, so the status bar doesn't
+  // sit as a black band above a white app (or vice versa).
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f6f7fa' },
+    { media: '(prefers-color-scheme: dark)', color: '#08090c' },
+  ],
   width: 'device-width',
   initialScale: 1,
   maximumScale: 5,
@@ -39,7 +46,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en-IN" className="dark">
+    <html lang="en-IN">
       <body>
         <RegisterServiceWorker />
         {children}

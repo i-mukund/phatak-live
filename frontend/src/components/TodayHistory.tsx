@@ -20,7 +20,7 @@ export function TodayHistory({ today }: { today: TodaySummary }) {
             No closures recorded yet today.
           </p>
         ) : (
-          <ul className="divide-y divide-white/[0.05]">
+          <ul className="divide-y divide-line/[0.07]">
             {today.closures.map((window) => (
               <li key={window.close_at} className="flex items-center gap-3 px-4 py-3">
                 <div className="tnum w-[9.5rem] shrink-0 text-sm text-ink-200">
@@ -31,7 +31,7 @@ export function TodayHistory({ today }: { today: TodaySummary }) {
                     {window.causes.map((cause) => cause.train_name).join(', ') || 'Unknown train'}
                   </p>
                 </div>
-                <span className="tnum shrink-0 rounded-full bg-white/[0.06] px-2 py-1 text-xs text-ink-300">
+                <span className="tnum shrink-0 rounded-full bg-fill/[0.06] px-2 py-1 text-xs text-ink-300">
                   {formatDuration(window.duration_seconds)}
                 </span>
               </li>

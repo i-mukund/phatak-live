@@ -28,7 +28,7 @@ export function StatusBanner({ error, isOffline, stale, degraded, notice }: Prop
 
   return (
     <div className="px-5" role="status">
-      <p className="rounded-xl bg-soon/10 px-3.5 py-2.5 text-xs leading-relaxed text-soon">
+      <p className="rounded-xl bg-soon-dim px-3.5 py-2.5 text-xs leading-relaxed text-soon">
         {message}
       </p>
     </div>

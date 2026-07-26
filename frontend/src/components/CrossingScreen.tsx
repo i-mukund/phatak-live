@@ -114,7 +114,7 @@ function Unavailable() {
       <button
         type="button"
         onClick={() => window.location.reload()}
-        className="mt-2 rounded-xl bg-white/[0.08] px-5 py-2.5 text-sm font-medium text-ink-100 transition active:scale-95"
+        className="mt-2 rounded-xl bg-fill/[0.08] px-5 py-2.5 text-sm font-medium text-ink-100 transition active:scale-95"
       >
         Try again
       </button>

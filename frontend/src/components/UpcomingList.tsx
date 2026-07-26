@@ -10,7 +10,7 @@ export function UpcomingList({ windows, now }: { windows: ClosureWindow[]; now: 
     <section className="px-5">
       <div className="card overflow-hidden">
         <p className="label px-4 pb-3 pt-4">Later today</p>
-        <ul className="divide-y divide-white/[0.05]">
+        <ul className="divide-y divide-line/[0.07]">
           {windows.slice(1, 5).map((window) => (
             <li key={window.close_at} className="flex items-center gap-3 px-4 py-3">
               <div className="tnum w-24 shrink-0 text-sm font-medium text-ink-100">

@@ -57,7 +57,7 @@ export function ConfidenceBadge({ confidence, data }: Props) {
               ))}
             </ul>
           )}
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-white/[0.06] pt-3 text-xs">
+          <dl className="grid grid-cols-2 gap-x-4 gap-y-1.5 border-t border-line/[0.07] pt-3 text-xs">
             <Row label="Source" value={data.providers_used.join(', ') || 'timetable'} />
             <Row label="Mode" value={data.degraded ? 'Fallback data' : 'Live data'} />
             {data.freight_risk > 0 && (
@@ -78,7 +78,7 @@ function Meter({ percent }: { percent: number }) {
   const colour = percent >= 80 ? 'bg-open' : percent >= 60 ? 'bg-ink-200' : percent >= 40 ? 'bg-soon' : 'bg-closed';
   return (
     <div
-      className="h-1.5 w-20 overflow-hidden rounded-full bg-white/10"
+      className="h-1.5 w-20 overflow-hidden rounded-full bg-fill/[0.10]"
       role="meter"
       aria-valuenow={percent}
       aria-valuemin={0}

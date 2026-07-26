@@ -3,8 +3,64 @@
 @tailwind utilities;
 
 @layer base {
+  /*
+   * Light is the default and dark is the override, so the app degrades to a
+   * readable light theme if the media query is unsupported.
+   *
+   * Status colours are NOT shared between themes. The dark-mode green
+   * (#30d158) sits at roughly 1.9:1 against white — illegible, and an
+   * accessibility failure. Light mode uses darker, WCAG-AA-passing variants.
+   */
   :root {
-    color-scheme: dark light;
+    color-scheme: light dark;
+
+    --ink-950: 246 247 250; /* page background */
+    --ink-900: 255 255 255; /* card surface   */
+    --ink-800: 255 255 255;
+    --ink-700: 232 235 242;
+    --ink-600: 201 207 220;
+    --ink-500: 122 130 150;
+    --ink-400: 92 100 122;  /* muted text, 5.6:1 on white */
+    --ink-300: 58 65 80;
+    --ink-200: 28 32 41;
+    --ink-100: 13 15 19;    /* primary text   */
+
+    --fill: 13 15 19;       /* neutral overlay, used at low alpha */
+    --line: 13 15 19;       /* hairline borders                   */
+    --shadow: 13 15 19;
+
+    --open: 21 128 61;      /* 4.9:1 on white */
+    --open-dim: 220 243 228;
+    --closed: 192 38 23;    /* 5.9:1 on white */
+    --closed-dim: 253 226 222;
+    --soon: 168 85 4;       /* 5.3:1 on white */
+    --soon-dim: 253 237 213;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --ink-950: 8 9 12;
+      --ink-900: 13 15 19;
+      --ink-800: 20 23 29;
+      --ink-700: 28 32 41;
+      --ink-600: 39 44 55;
+      --ink-500: 74 82 100;
+      --ink-400: 138 146 168; /* 6.2:1 on card — AA for the .label caps */
+      --ink-300: 176 183 199;
+      --ink-200: 201 207 220;
+      --ink-100: 232 235 242;
+
+      --fill: 255 255 255;
+      --line: 255 255 255;
+      --shadow: 0 0 0;
+
+      --open: 48 209 88;
+      --open-dim: 15 61 33;
+      --closed: 255 69 58;
+      --closed-dim: 67 20 15;
+      --soon: 255 159 10;
+      --soon-dim: 67 42 5;
+    }
   }
 
   html {
@@ -14,20 +70,19 @@
 
   body {
     @apply bg-ink-950 text-ink-100 antialiased;
-    /* Respect the notch and the home indicator. */
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
     overscroll-behavior-y: none;
   }
 
-  /* Tabular numerals stop the countdown from jittering as digits change. */
+  /* Tabular numerals stop the countdown jittering as digits change. */
   .tnum {
     font-variant-numeric: tabular-nums;
     font-feature-settings: 'tnum';
   }
 
   :focus-visible {
-    @apply outline-none ring-2 ring-ink-200/70 ring-offset-2 ring-offset-ink-950 rounded-lg;
+    @apply outline-none ring-2 ring-ink-300/70 ring-offset-2 ring-offset-ink-950 rounded-lg;
   }
 
   @media (prefers-reduced-motion: reduce) {
@@ -42,11 +97,29 @@
 }
 
 @layer components {
+  /*
+   * In dark mode a card is a lighter pane on a darker page; in light mode the
+   * relationship inverts — white card on a tinted page — so the card needs a
+   * real border and a soft shadow to read as raised rather than as a hole.
+   */
   .card {
-    @apply rounded-xl2 border border-white/[0.07] bg-ink-900/70 backdrop-blur-xl;
+    @apply rounded-xl2 border border-line/[0.08] bg-ink-900/80 shadow-card backdrop-blur-xl;
   }
 
   .label {
     @apply text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-400;
+  }
+
+  /* Subtle neutral fill for chips, tracks and secondary buttons. */
+  .fill-subtle {
+    @apply bg-fill/[0.06];
+  }
+
+  .fill-subtle-strong {
+    @apply bg-fill/[0.10];
+  }
+
+  .divide-hairline > * + * {
+    @apply border-t border-line/[0.07];
   }
 }

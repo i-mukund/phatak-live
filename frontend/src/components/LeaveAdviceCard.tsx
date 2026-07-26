@@ -56,7 +56,7 @@ export function LeaveAdviceCard({ advice, travelSeconds, onChange }: Props) {
                   className={`tnum rounded-xl px-2 py-2.5 text-sm font-medium transition active:scale-95 ${
                     active
                       ? 'bg-ink-100 text-ink-950'
-                      : 'bg-white/[0.06] text-ink-300 hover:bg-white/[0.1]'
+                      : 'bg-fill/[0.06] text-ink-300 hover:bg-fill/[0.10]'
                   }`}
                 >
                   {seconds / 60} min

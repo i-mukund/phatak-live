@@ -3,27 +3,29 @@
 import { formatClock, formatCountdown, formatDuration } from '@/lib/format';
 import type { CrossingStatus } from '@/lib/types';
 
+// The glow is deliberately weaker in light mode: a saturated wash that reads
+// as a soft halo on near-black looks like a printing error on near-white.
 const TONE = {
   open: {
     word: 'OPEN',
     dot: 'bg-open',
     ring: 'bg-open/30',
     text: 'text-open',
-    glow: 'from-open/[0.14]',
+    glow: 'from-open/[0.07] dark:from-open/[0.14]',
   },
   closed: {
     word: 'CLOSED',
     dot: 'bg-closed',
     ring: 'bg-closed/30',
     text: 'text-closed',
-    glow: 'from-closed/[0.16]',
+    glow: 'from-closed/[0.08] dark:from-closed/[0.16]',
   },
   closing_soon: {
     word: 'CLOSING',
     dot: 'bg-soon',
     ring: 'bg-soon/30',
     text: 'text-soon',
-    glow: 'from-soon/[0.16]',
+    glow: 'from-soon/[0.08] dark:from-soon/[0.16]',
   },
 } as const;
 

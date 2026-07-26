@@ -28,7 +28,7 @@ export function Header({ crossing, onRefresh, isRefreshing }: Props) {
         onClick={onRefresh}
         disabled={isRefreshing}
         aria-label="Refresh status"
-        className="mt-1 shrink-0 rounded-full border border-white/[0.08] bg-ink-900/70 p-2.5 text-ink-300 transition active:scale-90 disabled:opacity-50"
+        className="mt-1 shrink-0 rounded-full border border-line/[0.09] bg-ink-900/70 p-2.5 text-ink-300 transition active:scale-90 disabled:opacity-50"
       >
         <svg
           viewBox="0 0 24 24"

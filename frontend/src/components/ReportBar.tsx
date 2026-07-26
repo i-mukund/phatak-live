@@ -42,7 +42,7 @@ export function ReportBar({ slug }: { slug: string }) {
             type="button"
             disabled={busy}
             onClick={() => report('open')}
-            className="rounded-xl bg-open/15 px-3 py-3 text-sm font-semibold text-open transition active:scale-95 disabled:opacity-50"
+            className="rounded-xl bg-open-dim px-3 py-3 text-sm font-semibold text-open transition active:scale-95 disabled:opacity-50"
           >
             It&rsquo;s open
           </button>
@@ -50,7 +50,7 @@ export function ReportBar({ slug }: { slug: string }) {
             type="button"
             disabled={busy}
             onClick={() => report('closed')}
-            className="rounded-xl bg-closed/15 px-3 py-3 text-sm font-semibold text-closed transition active:scale-95 disabled:opacity-50"
+            className="rounded-xl bg-closed-dim px-3 py-3 text-sm font-semibold text-closed transition active:scale-95 disabled:opacity-50"
           >
             It&rsquo;s shut
           </button>

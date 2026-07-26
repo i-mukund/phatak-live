@@ -27,8 +27,8 @@ export function PullIndicator({ distance, armed, isRefreshing, threshold = 72 }:
       <div
         className={`flex h-9 w-9 items-center justify-center rounded-full border backdrop-blur-xl transition-colors ${
           armed || isRefreshing
-            ? 'border-white/20 bg-ink-800/90'
-            : 'border-white/10 bg-ink-900/80'
+            ? 'border-line/[0.18] bg-ink-800/90'
+            : 'border-line/[0.10] bg-ink-900/80'
         }`}
       >
         <svg

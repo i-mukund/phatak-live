@@ -44,7 +44,7 @@ export function TrainCard({ train, crossing, now }: Props) {
           </div>
         </div>
 
-        <div className="mt-3.5 flex flex-wrap gap-1.5 border-t border-white/[0.06] pt-3.5">
+        <div className="mt-3.5 flex flex-wrap gap-1.5 border-t border-line/[0.07] pt-3.5">
           <Chip>{directionLabel(train.direction, crossing)}</Chip>
           <Chip>{Math.round(train.speed_kmph)} km/h</Chip>
           {train.delay_minutes > 0 && (
@@ -59,8 +59,8 @@ export function TrainCard({ train, crossing, now }: Props) {
 function Chip({ children, tone = 'plain' }: { children: React.ReactNode; tone?: 'plain' | 'warn' }) {
   const classes =
     tone === 'warn'
-      ? 'bg-soon/15 text-soon'
-      : 'bg-white/[0.06] text-ink-300';
+      ? 'bg-soon-dim text-soon'
+      : 'bg-fill/[0.06] text-ink-300';
   return (
     <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${classes}`}>{children}</span>
   );
