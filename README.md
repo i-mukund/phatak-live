@@ -1,6 +1,6 @@
 <div align="center">
 
-# Phatak Live
+# Phaatak
 
 **Should I leave home now, or will the gate close before I reach it?**
 
@@ -17,7 +17,7 @@ crossing (*phatak*) will close and reopen.
 
 ## What this is
 
-Phatak Live is **not** a train tracker and **not** a timetable. Those already exist, and
+Phaatak is **not** a train tracker and **not** a timetable. Those already exist, and
 neither answers the question people actually have when they pick up their keys.
 
 The homepage answers exactly one question, in one screen:
@@ -42,6 +42,7 @@ Underneath, it models the *crossing* — not the train:
 - **Today's closure history**
 - **A direct verdict** for your travel time: go, tight, or wait
 - **Pull down to refresh** — asks the server to go and look, within a metered budget
+- **Report the gate** — one tap; unexplained closures become the freight signal
 
 Target crossing: **Siraspur Railway Crossing**, North West Delhi, on the Northern Railway
 Delhi–Panipat corridor between Badli (BHD) and Khera Kalan (KHKN). The architecture generalises to
@@ -51,7 +52,7 @@ any level crossing in India — adding one is a `POST /api/v1/crossings`, not a 
 
 | | |
 |---|---|
-| **App** | https://phatak-live.vercel.app |
+| **App** | https://phaatak.vercel.app |
 | **API** | https://phatak-api.onrender.com ([docs](https://phatak-api.onrender.com/docs)) |
 
 Running free on Vercel (frontend) + Render (API) + Neon (Postgres). On a phone,
@@ -70,8 +71,7 @@ docker compose up --build
 
 **Without an API key the stack still works.** A deterministic mock provider generates a plausible
 Siraspur traffic pattern, so you can see, click and demo the whole product before you have
-credentials. Get a free key (50 requests/day) at [railradar.in/developers](https://railradar.in/developers).
-
+credentials. Get a free key (100 requests/day) at [railradar.in/developers](https://railradar.in/developers).
 <details>
 <summary>Running without Docker</summary>
 
@@ -93,13 +93,13 @@ API_BASE_URL=http://localhost:8000 npm run dev
 ```mermaid
 flowchart LR
     P["Providers<br/>RailRadar · REST · Timetable"] -->|TrainSighting| E["Prediction engine<br/>(pure function)"]
-    E -->|ClosureWindow[]| DB[(Database)]
+    E -->|ClosureWindow| DB[(Database)]
     DB --> API["FastAPI"] --> UI["Next.js PWA"]
     UI -->|"gate is shut"| OBS["Observations"]
     DB --> OBS --> L["Learning engine<br/>EWMA calibration"] --> E
 ```
 
-Four ideas carry the whole design:
+Six ideas carry the whole design:
 
 1. **The crossing lies between two known stations.** So a pass time can be interpolated from
    per-station timings alone — no GPS required. Two station-board API calls per poll cover
@@ -118,20 +118,18 @@ Four ideas carry the whole design:
    offsets are learned by EWMA. The system gets better at *this* gate over time — and it can show
    you its own error statistics at `/api/v1/crossings/{slug}/accuracy`.
 
-5. **A pull is a question, not a command.** Pull-to-refresh triggers a live
-   provider fetch *only* if newer data would actually exist and the metered
-   daily allowance can afford it — otherwise it says so rather than faking a
-   spinner. Concurrent pulls collapse into one upstream call.
+5. **A pull is a question, not a command.** Pull-to-refresh triggers a live provider fetch *only*
+   if newer data would actually exist and the metered daily allowance can afford it — otherwise it
+   says so rather than faking a spinner. Concurrent pulls collapse into one upstream call.
 
 6. **Even the map fixes itself.** A wrong chainage leaves a directional fingerprint (UP trains
    biased one way, DOWN the other). The geometry calibrator detects it and moves the crossing
    along its segment — bounded, rate-limited, and fully audited — so seeded estimates converge
    on surveyed truth without a deploy.
-
 ## What it will not pretend to know
 
 Indian Railways publishes no freight running data — anywhere, to anyone. At Siraspur, goods trains
-are a real share of closures. Rather than quietly being wrong, Phatak Live:
+are a real share of closures. Rather than quietly being wrong, Phaatak:
 
 - reduces confidence during historically freight-heavy windows,
 - records unexplained closures and exposes a `freight_risk` band,
@@ -148,26 +146,26 @@ backend/            FastAPI service
   app/core/         config, clock, cache, retry, circuit breaker, budget, metrics
   app/domain.py     provider-neutral domain objects
   app/providers/    RailRadar · generic REST · timetable · mock · failover chain
-  app/services/     prediction engine · learning engine · ingest · status
+  app/services/     prediction engine · learning engine · ingest · status · reports
   app/api/          v1 routers, health, admin diagnostics
   alembic/          versioned migrations
-  tests/            179 tests: unit, integration, failure modes, load profile
+  tests/            193 tests: unit, integration, failure modes, load profile
 frontend/           Next.js 15 PWA (App Router, TypeScript, Tailwind)
 docs/               research, architecture, ADRs, API, deployment, ops
-.github/workflows/  CI, CodeQL
+.github/workflows/  CI, CodeQL, keep-alive
 ```
 
 ## Status
 
 | Area | State |
 |---|---|
-| Backend, providers, prediction, learning | ✅ Complete |
-| Frontend PWA | ✅ Complete |
-| Tests | ✅ 179 passing |
-| Docker / CI / Render blueprint | ✅ Complete |
-| Live provider integration | ⚠️ Needs your API key |
-| Crossing geometry | ⚠️ Approximate seed — **self-correcting** from live data ([how](docs/TROUBLESHOOTING.md#the-predictions-are-consistently-early-or-late)) |
-| Web Push notifications | 🔜 Schema shipped, delivery on the roadmap |
+| Backend, providers, prediction, learning | Complete |
+| Frontend PWA, light/dark theme | Complete |
+| Tests | 193 passing |
+| Docker / CI / Render blueprint | Complete |
+| Live provider integration | Live on RailRadar |
+| Crossing geometry | Approximate seed — self-correcting from live data ([how](docs/TROUBLESHOOTING.md#the-predictions-are-consistently-early-or-late)) |
+| Web Push notifications | Schema shipped, delivery on the roadmap |
 
 ## Safety
 
