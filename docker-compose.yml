@@ -1,0 +1,67 @@
+# Local production-shaped stack: PostgreSQL, Redis, backend, frontend.
+#
+#   cp .env.example .env && docker compose up --build
+#
+# Without RAILRADAR_API_KEY the backend runs on its deterministic mock provider,
+# so the stack is fully usable before you have credentials.
+
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: phatak
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-phatak}
+      POSTGRES_DB: phatak
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U phatak"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  cache:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    environment:
+      ENVIRONMENT: production
+      DATABASE_URL: postgresql+psycopg://phatak:${POSTGRES_PASSWORD:-phatak}@db:5432/phatak
+      CACHE_BACKEND: redis
+      REDIS_URL: redis://cache:6379/0
+      RAILRADAR_API_KEY: ${RAILRADAR_API_KEY:-}
+      ADMIN_API_KEY: ${ADMIN_API_KEY:-}
+      CORS_ORIGINS: http://localhost:3000
+      LOG_FORMAT: json
+      SCHEDULER_ENABLED: "true"
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+      cache:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    environment:
+      API_BASE_URL: http://backend:8000
+      NEXT_PUBLIC_DEFAULT_CROSSING: siraspur
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  pgdata:

@@ -1,0 +1,8 @@
+Alembic migrations for Phatak Live.
+
+    alembic upgrade head              # apply
+    alembic revision --autogenerate -m "add x"
+    alembic downgrade -1              # roll back one
+
+The URL is taken from DATABASE_URL via app.core.config, so exporting the same
+environment the app uses is enough. Autogenerate runs in batch mode on SQLite.

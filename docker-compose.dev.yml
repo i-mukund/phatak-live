@@ -1,0 +1,37 @@
+# Zero-dependency development stack: SQLite, in-process cache, hot reload.
+#
+#   docker compose -f docker-compose.dev.yml up
+
+services:
+  backend:
+    build: ./backend
+    command: >
+      sh -c "uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    environment:
+      ENVIRONMENT: development
+      DATABASE_URL: sqlite+pysqlite:////data/phatak.db
+      LOG_FORMAT: console
+      CORS_ORIGINS: http://localhost:3000
+    volumes:
+      - ./backend:/app
+      - devdata:/data
+    ports:
+      - "8000:8000"
+
+  frontend:
+    build:
+      context: ./frontend
+      target: builder
+    command: npm run dev
+    environment:
+      API_BASE_URL: http://backend:8000
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+
+volumes:
+  devdata:
