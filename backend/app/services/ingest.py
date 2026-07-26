@@ -91,7 +91,9 @@ class IngestService:
         )
 
         self._persist_sightings(session, ref, chain_result.sightings, now)
-        window_count = self._persist_windows(session, crossing.id, prediction, now)
+        window_count = self._persist_windows(
+            session, crossing.id, prediction, now, degraded=chain_result.degraded
+        )
         recorded = self._learning.record_predictions(session, crossing.id, prediction)
         observed = self._learning.derive_observations(session, ref, chain_result.sightings)
 
@@ -175,7 +177,13 @@ class IngestService:
             )
 
     def _persist_windows(
-        self, session: Session, crossing_id: int, prediction: Prediction, now: datetime
+        self,
+        session: Session,
+        crossing_id: int,
+        prediction: Prediction,
+        now: datetime,
+        *,
+        degraded: bool = False,
     ) -> int:
         """Replace future predicted windows; never touch elapsed history.
 
@@ -211,6 +219,7 @@ class IngestService:
                     existing.open_at = window.open_at
                     existing.confidence = window.confidence
                     existing.causes = _causes_json(window)
+                    existing.degraded = degraded
                     written += 1
                     continue
             session.add(
@@ -222,6 +231,7 @@ class IngestService:
                     confidence=window.confidence,
                     causes=_causes_json(window),
                     is_superseded=False,
+                    degraded=degraded,
                 )
             )
             written += 1

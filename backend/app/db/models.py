@@ -187,6 +187,11 @@ class ClosureWindow(TimestampMixin, Base):
     #: Trains responsible for this window: [{number, name, type, pass_at, direction}]
     causes: Mapped[list | None] = mapped_column(JSON)
     is_superseded: Mapped[bool] = mapped_column(Boolean, default=False)
+    #: True when no live provider contributed to this window — i.e. it came
+    #: from the offline timetable. Persisted because the read path cannot
+    #: otherwise know: it only sees the stored window, and silently serving
+    #: fallback data as though it were live breaks the product's core promise.
+    degraded: Mapped[bool] = mapped_column(Boolean, default=False)
 
     @property
     def duration_seconds(self) -> float:

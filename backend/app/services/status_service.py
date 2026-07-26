@@ -81,9 +81,11 @@ class StatusService:
         travel_seconds: int | None = None,
     ) -> CrossingStatusOut:
         ref = to_ref(crossing)
-        windows, last_updated, stale = self._load_windows(session, crossing.id, now)
+        windows, last_updated, stale, from_fallback = self._load_windows(
+            session, crossing.id, now
+        )
 
-        degraded = stale
+        degraded = stale or from_fallback
         providers_used: list[str] = []
         notes: list[str] = []
 
@@ -105,6 +107,11 @@ class StatusService:
         if stale:
             score *= 0.7
             notes.append("Live data is stale; showing the last known prediction.")
+        elif from_fallback and not notes:
+            notes.append(
+                "No live train feed right now — these are scheduled timings, "
+                "so delays aren't reflected."
+            )
 
         return CrossingStatusOut(
             crossing=to_summary(crossing),
@@ -143,7 +150,7 @@ class StatusService:
 
     def _load_windows(
         self, session: Session, crossing_id: int, now: datetime
-    ) -> tuple[list[ClosureWindow], datetime | None, bool]:
+    ) -> tuple[list[ClosureWindow], datetime | None, bool, bool]:
         rows = list(
             session.scalars(
                 select(ClosureWindowRow)
@@ -158,12 +165,15 @@ class StatusService:
             )
         )
         if not rows:
-            return [], None, True
+            return [], None, True, True
         last_updated = max(row.updated_at for row in rows)
         stale = (
             now - last_updated
         ).total_seconds() > self._settings.max_sighting_age_seconds
-        return [_row_to_window(r) for r in rows], last_updated, stale
+        # A window built without any live provider stays flagged for as long as
+        # it is served, however fresh it is.
+        from_fallback = any(row.degraded for row in rows)
+        return [_row_to_window(r) for r in rows], last_updated, stale, from_fallback
 
     async def _fallback_windows(
         self, session: Session, ref: CrossingRef, now: datetime

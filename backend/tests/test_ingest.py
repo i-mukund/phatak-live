@@ -115,3 +115,65 @@ class TestIngest:
         session.flush()
         purged = make_ingest([]).purge_old(session, now, retention_days=30)
         assert purged == 1
+
+
+class TestDegradedIsPersisted:
+    """Regression: the ingest knew it had fallen back to the offline timetable,
+    but that fact died before reaching the database — so the read path served
+    fallback windows as though they were live, with `degraded: false` and no
+    note. Silently presenting scheduled timings as live data is the one thing
+    this product must never do."""
+
+    async def test_a_fallback_tick_marks_its_windows(
+        self, session, crossing_row, settings, now
+    ):
+        from app.core.clock import FrozenClock
+        from app.core.config import get_settings
+        from app.core.errors import ProviderUnavailable
+        from app.db.models import ClosureWindow as Row
+        from app.providers.chain import FailoverChain, ProviderTier, RegisteredProvider
+        from app.services.ingest import IngestService
+        from app.services.learning.engine import LearningEngine
+        from app.services.prediction.engine import PredictionEngine
+        from tests.factories import direct_sighting
+
+        class _Dead(_Fixed):
+            name = "primary"
+
+            async def fetch_sightings(self, ctx):
+                raise ProviderUnavailable("primary", "quota exhausted")
+
+        fallback = _Fixed([direct_sighting(now=now, minutes_ahead=25)])
+        fallback.name = "timetable"
+        chain = FailoverChain(
+            [
+                RegisteredProvider(_Dead([]), ProviderTier.PRIMARY),
+                RegisteredProvider(fallback, ProviderTier.FALLBACK),
+            ],
+            timeout=1.0,
+            max_retries=1,
+        )
+        ingest = IngestService(
+            chain=chain, engine=PredictionEngine(), learning=LearningEngine(),
+            settings=get_settings(), clock=FrozenClock(now),
+        )
+        result = await ingest.run_for_crossing(session, crossing_row)
+        session.flush()
+
+        assert result.degraded is True
+        rows = session.query(Row).all()
+        assert rows and all(r.degraded for r in rows), (
+            "fallback windows must carry the flag into the database"
+        )
+
+    async def test_a_healthy_tick_does_not_mark_its_windows(
+        self, session, crossing_row, make_ingest, now
+    ):
+        from app.db.models import ClosureWindow as Row
+        from tests.factories import direct_sighting
+
+        await make_ingest([direct_sighting(now=now, minutes_ahead=25)]).run_for_crossing(
+            session, crossing_row
+        )
+        session.flush()
+        assert not any(r.degraded for r in session.query(Row).all())

@@ -238,3 +238,36 @@ class TestAdviceCopy:
 
     def test_no_advice_without_a_travel_time(self, now):
         assert self._advice(now, minutes_ahead=5, travel_seconds=None) is None
+
+
+class TestFallbackHonesty:
+    """The read path must never present timetable data as live."""
+
+    def test_status_flags_fallback_windows_and_says_why(self, client):
+        from datetime import datetime, timedelta, timezone
+
+        from app.db.models import ClosureWindow as Row
+        from app.db.session import session_scope
+
+        # A window persisted by a degraded tick, fresh enough not to be stale.
+        now = datetime.now(tz=timezone.utc)
+        with session_scope() as s:
+            from app.db.models import Crossing
+
+            cid = s.query(Crossing).one().id
+            s.add(
+                Row(
+                    crossing_id=cid,
+                    close_at=now + timedelta(minutes=20),
+                    open_at=now + timedelta(minutes=25),
+                    source="predicted",
+                    confidence=0.6,
+                    causes=[],
+                    is_superseded=False,
+                    degraded=True,
+                )
+            )
+
+        body = client.get("/api/v1/crossings/siraspur/status").json()
+        assert body["data"]["degraded"] is True
+        assert any("live train feed" in n for n in body["data"]["notes"]), body["data"]["notes"]
