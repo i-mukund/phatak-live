@@ -1,0 +1,55 @@
+# Render blueprint — backend only.
+#
+# Zero-cost production stack:
+#   • FastAPI backend (this file) → Render free web service
+#   • Next.js frontend            → Vercel Hobby (free, never sleeps)
+#   • PostgreSQL                  → Neon free tier (permanent, scales to zero)
+#
+# Why the frontend is not defined here: Render's free tier grants 750 instance
+# hours per month *across all free services*. Keeping a single service awake
+# around the clock costs ~730 h, so a second always-on service would blow the
+# allowance and the app would go dark part-way through each month. The Next.js
+# app is a better fit for Vercel regardless — it is Vercel's own framework, and
+# their free tier does not sleep.
+
+services:
+  - type: web
+    name: phatak-api
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    plan: free
+    healthCheckPath: /health/live
+    autoDeploy: true
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+
+      # Neon connection string, e.g.
+      #   postgresql://user:pass@ep-xxx.region.aws.neon.tech/phatak?sslmode=require
+      # Settings normalises the scheme to postgresql+psycopg:// at startup, and
+      # pool_pre_ping handles connections dropped when Neon suspends compute.
+      - key: DATABASE_URL
+        sync: false
+
+      - key: RAILRADAR_API_KEY
+        sync: false
+
+      # Full frontend origin once Vercel issues it, e.g. https://phatak-live.vercel.app
+      - key: CORS_ORIGINS
+        sync: false
+
+      - key: ADMIN_API_KEY
+        generateValue: true
+
+      - key: LOG_FORMAT
+        value: json
+      - key: SCHEDULER_ENABLED
+        value: "true"
+
+      # 30 minutes fits the RailRadar free quota (100 requests/day) exactly:
+      # 48 ticks × 2 board calls, leaving headroom for near-gate enrichment.
+      - key: INGEST_INTERVAL_SECONDS
+        value: "1800"
+      - key: API_DAILY_REQUEST_BUDGET
+        value: "100"

@@ -1,0 +1,52 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark light;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-ink-950 text-ink-100 antialiased;
+    /* Respect the notch and the home indicator. */
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    overscroll-behavior-y: none;
+  }
+
+  /* Tabular numerals stop the countdown from jittering as digits change. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+    font-feature-settings: 'tnum';
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-ink-200/70 ring-offset-2 ring-offset-ink-950 rounded-lg;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-xl2 border border-white/[0.07] bg-ink-900/70 backdrop-blur-xl;
+  }
+
+  .label {
+    @apply text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-ink-400;
+  }
+}

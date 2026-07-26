@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Phatak Live">
+  <rect width="512" height="512" rx="112" fill="#08090c"/>
+  <g stroke-linecap="round">
+    <path d="M96 300h320" stroke="#3a4150" stroke-width="14"/>
+    <path d="M96 348h320" stroke="#3a4150" stroke-width="14"/>
+    <path d="M140 276v96M226 276v96M312 276v96M398 276v96" stroke="#272c37" stroke-width="12"/>
+    <path d="M112 176v168" stroke="#c9cfdc" stroke-width="18"/>
+    <path d="M112 196l288 44" stroke="#ff453a" stroke-width="26"/>
+    <path d="M160 205l40 6M240 217l40 6M320 229l40 6" stroke="#e8ebf2" stroke-width="26"/>
+  </g>
+</svg>
