@@ -186,3 +186,44 @@ class TestCachedResponseCorrectness:
             # ...but the countdown moved with the clock, never backwards in time.
             assert body["seconds_until_close"] <= first["seconds_until_close"]
         assert body["server_time"] >= first["server_time"]
+
+
+class TestAdviceCopy:
+    """Regression: integer division rendered a sub-minute wait as
+    'about 0 min of waiting', which reads like a bug to someone holding keys."""
+
+    def _advice(self, now, minutes_ahead, travel_seconds):
+        from app.core.config import get_settings
+        from app.db.session import session_scope
+        from app.providers.timetable import TimetableProvider
+        from app.services.learning.engine import LearningEngine
+        from app.services.prediction.engine import PredictionEngine
+        from app.services.status_service import StatusService
+        from tests.factories import direct_sighting
+
+        engine = PredictionEngine()
+        svc = StatusService(
+            engine=engine, learning=LearningEngine(), settings=get_settings(),
+            fallback_provider=TimetableProvider(session_scope=session_scope),
+        )
+        from app.domain import CrossingRef
+
+        ref = CrossingRef(
+            id=1, slug="x", name="X", latitude=0, longitude=0,
+            prev_station_code="A", next_station_code="B",
+            distance_from_prev_km=1.0, distance_from_next_km=1.0,
+        )
+        prediction = engine.predict(
+            crossing=ref, sightings=[direct_sighting(now=now, minutes_ahead=minutes_ahead)],
+            now=now,
+        )
+        return svc._advice(list(prediction.windows), now, travel_seconds)
+
+    def test_sub_minute_wait_reads_naturally(self, now):
+        advice = self._advice(now, minutes_ahead=5, travel_seconds=340)
+        if advice and advice.verdict == "wait":
+            assert "0 min" not in advice.reason
+            assert "under a minute" in advice.reason or "about 1 min" in advice.reason
+
+    def test_no_advice_without_a_travel_time(self, now):
+        assert self._advice(now, minutes_ahead=5, travel_seconds=None) is None

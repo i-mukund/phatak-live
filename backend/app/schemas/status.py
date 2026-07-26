@@ -94,6 +94,18 @@ class CrossingStatusOut(ApiModel):
     advice: LeaveAdviceOut | None = None
 
 
+class RefreshResultOut(ApiModel):
+    """Result of a user-triggered refresh, plus the resulting status so the
+    client updates in a single round trip."""
+
+    refreshed: bool
+    outcome: str = Field(examples=["refreshed", "already_fresh", "budget_protected"])
+    reason: str
+    data_age_seconds: float | None = None
+    next_refresh_at: ISTDateTime | None = None
+    status: CrossingStatusOut
+
+
 class GateReportIn(ApiModel):
     state: str = Field(pattern="^(open|closed)$")
     note: str | None = Field(default=None, max_length=280)

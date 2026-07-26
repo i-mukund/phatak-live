@@ -179,10 +179,63 @@ class TestSettings:
         from app.core.config import Settings
 
         settings = Settings(cors_origins="https://a.example, https://b.example")
-        assert settings.cors_origins == ["https://a.example", "https://b.example"]
+        assert settings.cors_origin_list == ["https://a.example", "https://b.example"]
 
     def test_mock_provider_is_implied_when_no_key_is_configured(self):
         from app.core.config import Settings
 
         assert Settings(railradar_api_key=None).has_live_provider is False
         assert Settings(railradar_api_key="rr_live_x").has_live_provider is True
+
+
+class TestCorsOriginsFromEnvironment:
+    """Regression: a bare URL in CORS_ORIGINS crashed the app at import time on
+    the first real deploy — the container never bound a port. pydantic-settings
+    JSON-decodes complex field types from the environment before validators
+    run, so these must be exercised through the env source. The original test
+    passed the value to the constructor, which skips that path entirely."""
+
+    def _settings(self, monkeypatch, value: str):
+        from app.core.config import Settings
+
+        monkeypatch.setenv("CORS_ORIGINS", value)
+        return Settings()
+
+    def test_single_bare_url(self, monkeypatch):
+        s = self._settings(monkeypatch, "https://phatak-live.vercel.app")
+        assert s.cors_origin_list == ["https://phatak-live.vercel.app"]
+
+    def test_comma_separated(self, monkeypatch):
+        s = self._settings(monkeypatch, "https://a.example, https://b.example")
+        assert s.cors_origin_list == ["https://a.example", "https://b.example"]
+
+    def test_json_array_is_also_accepted(self, monkeypatch):
+        s = self._settings(monkeypatch, '["https://a.example","https://b.example"]')
+        assert s.cors_origin_list == ["https://a.example", "https://b.example"]
+
+    def test_malformed_json_degrades_to_empty_rather_than_crashing(self, monkeypatch):
+        assert self._settings(monkeypatch, '["unclosed').cors_origin_list == []
+
+
+class TestStalenessGuard:
+    """Regression: a 30-minute ingest cadence against a 15-minute staleness
+    threshold meant every response between ticks was flagged stale, and the
+    live site showed a permanent 'data is delayed' warning."""
+
+    def test_threshold_is_raised_to_outlive_a_slow_poll_interval(self):
+        from app.core.config import Settings
+
+        s = Settings(ingest_interval_seconds=1800, max_sighting_age_seconds=900)
+        assert s.max_sighting_age_seconds == 2700
+
+    def test_a_generous_threshold_is_left_alone(self):
+        from app.core.config import Settings
+
+        s = Settings(ingest_interval_seconds=90, max_sighting_age_seconds=3600)
+        assert s.max_sighting_age_seconds == 3600
+
+    def test_defaults_are_self_consistent(self):
+        from app.core.config import Settings
+
+        s = Settings()
+        assert s.max_sighting_age_seconds > s.ingest_interval_seconds

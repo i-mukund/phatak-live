@@ -15,6 +15,7 @@ from app.schemas.status import (
     CrossingStatusOut,
     GateReportIn,
     GateReportOut,
+    RefreshResultOut,
 )
 from app.services.crossing_service import to_detail, to_summary
 
@@ -92,6 +93,49 @@ def _refresh_countdowns(payload: CrossingStatusOut, now: datetime) -> CrossingSt
         if payload.current_closure else None
     )
     return payload
+
+
+@router.post(
+    "/{slug}/refresh",
+    response_model=RefreshResultOut,
+    summary="Pull-to-refresh: fetch the freshest available status",
+    description=(
+        "Triggers a live provider fetch **if it would actually help** and the "
+        "daily upstream allowance can afford it, then returns the resulting "
+        "status in the same response.\n\n"
+        "Unauthenticated by design — this is the pull-to-refresh gesture — so "
+        "it is guarded three ways: a freshness threshold, a budget floor that "
+        "protects scheduled ingestion, and single-flight collapsing of "
+        "concurrent pulls. `outcome` tells the client what really happened; "
+        "never present a refusal as a successful refresh."
+    ),
+)
+async def refresh_status(
+    slug: str,
+    travel_seconds: int | None = Query(default=None, ge=0, le=7200),
+    container: Container = Depends(get_container),
+    session: Session = Depends(get_db),
+    now: datetime = Depends(get_now),
+) -> RefreshResultOut:
+    crossing = container.crossings.get_by_slug(session, slug)
+    result = await container.refresh.refresh(session, crossing, now)
+
+    if result.refreshed:
+        # The cached payload describes a world that no longer exists.
+        for key in {f"status:{slug}:0", f"status:{slug}:{travel_seconds or 0}"}:
+            await container.cache.delete(key)
+
+    payload = await container.status.get_status(
+        session, crossing, now, travel_seconds=travel_seconds
+    )
+    return RefreshResultOut(
+        refreshed=result.refreshed,
+        outcome=result.outcome.value,
+        reason=result.reason,
+        data_age_seconds=result.data_age_seconds,
+        next_refresh_at=result.next_refresh_at,
+        status=payload,
+    )
 
 
 @router.post(

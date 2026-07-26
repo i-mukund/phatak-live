@@ -4,6 +4,34 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.2.0] — 2026-07-26
+
+### Added
+
+- **Pull-to-refresh.** `POST /crossings/{slug}/refresh` performs a live fetch
+  only when newer data could exist and the metered daily allowance permits it,
+  returning the resulting status in one round trip. Guarded by a freshness
+  threshold, a budget floor protecting scheduled ingestion, and single-flight
+  collapsing of concurrent pulls; the outcome is reported honestly rather than
+  dressed up as success.
+- Native-feeling touch gesture with rubber-band damping, a pull-proportional
+  spinner, haptic tick at the arm threshold, and an equivalent refresh button
+  for pointer devices and screen readers.
+
+### Fixed
+
+- `CORS_ORIGINS` typed as `list[str]` crashed the app at import on the first
+  real deploy: pydantic-settings JSON-decodes complex types from the
+  environment before validators run, so a bare URL raised `SettingsError` and
+  the container never bound a port. Now parsed by `cors_origin_list`.
+- A 30-minute poll against a 15-minute staleness threshold flagged every
+  response stale; the live site showed a permanent "data is delayed" warning.
+  `max_sighting_age_seconds` is now floored at 1.5x the poll interval.
+- Sub-minute waits rendered as "about 0 min of waiting".
+- Background cadence moved to 45 minutes so ~36 calls/day remain for
+  user-triggered refreshes; at 30 minutes the scheduler consumed the entire
+  free quota and the refresh button had nothing to spend.
+
 ## [1.1.0] — 2026-07-26
 
 ### Added

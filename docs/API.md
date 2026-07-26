@@ -158,6 +158,36 @@ The only endpoint the app polls. Poll every 15 s; the server caches for 15 s and
 our own database; if there are none, it computes them from the local timetable. Provider I/O
 happens only in the background scheduler.
 
+## `POST /crossings/{slug}/refresh`
+
+Pull-to-refresh. Triggers a live provider fetch **if it would help and the
+budget can afford it**, then returns the resulting status in the same response.
+
+```json
+{
+  "refreshed": true,
+  "outcome": "refreshed",
+  "reason": "Updated with the latest train positions.",
+  "data_age_seconds": 0.0,
+  "next_refresh_at": "2026-07-26T13:43:57+05:30",
+  "status": { "...full CrossingStatus..." }
+}
+```
+
+`outcome` is one of:
+
+| Value | Meaning |
+|---|---|
+| `refreshed` | A live fetch happened; `status` is new |
+| `already_fresh` | Newest data is younger than `MANUAL_REFRESH_MIN_AGE_SECONDS`; nothing to gain |
+| `budget_protected` | Daily upstream allowance is nearly spent; scheduled ingestion has first claim |
+| `provider_failed` | Upstream unreachable; last known prediction returned |
+
+Unauthenticated by design — it *is* the pull gesture — and therefore guarded
+three ways: freshness threshold, budget floor, and single-flight collapsing so
+a herd of simultaneous pulls costs exactly one upstream fetch. **Clients must
+not present a refusal as a successful refresh**; surface `reason` instead.
+
 ## `POST /crossings/{slug}/reports`
 
 Crowd report from someone standing at the gate — the only signal that sees freight.

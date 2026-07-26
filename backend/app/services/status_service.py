@@ -248,14 +248,18 @@ class StatusService:
             nxt = next((w for w in windows if w.close_at > arrival), None)
             margin = (nxt.close_at - arrival).total_seconds() if nxt else None
             if margin is not None and margin < 120:
+                margin_text = (
+                    f"{round(margin)} s" if margin < 60
+                    else f"{int(margin // 60)} min {int(margin % 60)} s"
+                )
                 return LeaveAdviceOut(
                     travel_seconds=travel_seconds,
                     arrival_at=arrival,
                     can_cross=True,
                     verdict="tight",
                     reason=(
-                        f"You should just make it — the gate is expected to close about "
-                        f"{int(margin // 60)} min {int(margin % 60)} s after you arrive."
+                        "You should just make it — the gate is expected to close "
+                        f"about {margin_text} after you arrive."
                     ),
                 )
             return LeaveAdviceOut(
@@ -266,15 +270,21 @@ class StatusService:
                 reason="The gate is expected to be open when you arrive.",
             )
         wait = (blocking.open_at - arrival).total_seconds()
+        leave_in = (blocking.open_at - now).total_seconds()
+        # "about 0 min of waiting" is what integer division produces for a
+        # sub-minute wait, and it reads like a bug to the person holding keys.
+        wait_text = "under a minute" if wait < 60 else f"about {round(wait / 60)} min"
+        leave_text = (
+            "in about a minute" if leave_in < 90 else f"in {round(leave_in / 60)} min"
+        )
         return LeaveAdviceOut(
             travel_seconds=travel_seconds,
             arrival_at=arrival,
             can_cross=False,
             verdict="wait",
             reason=(
-                f"The gate is expected to be shut when you arrive; about "
-                f"{int(wait // 60)} min of waiting. Leaving in "
-                f"{int((blocking.open_at - now).total_seconds() // 60)} min avoids it."
+                f"The gate is expected to be shut when you arrive — {wait_text} "
+                f"of waiting. Leaving {leave_text} avoids it."
             ),
         )
 

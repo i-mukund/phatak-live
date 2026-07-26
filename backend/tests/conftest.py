@@ -104,3 +104,24 @@ def minutes():
         return timedelta(minutes=n)
 
     return _minutes
+
+
+@pytest.fixture
+def client_with_admin(tmp_path, monkeypatch):
+    """Full ASGI app against an isolated database, scheduler off."""
+    from fastapi.testclient import TestClient
+
+    from app.core.config import get_settings
+    from app.db import session as session_module
+    from app.main import create_app
+
+    monkeypatch.setenv("DATABASE_URL", f"sqlite+pysqlite:///{tmp_path/'api.db'}")
+    monkeypatch.setenv("SCHEDULER_ENABLED", "false")
+    monkeypatch.setenv("ENVIRONMENT", "test")
+    monkeypatch.setenv("ADMIN_API_KEY", "test-admin-key")
+    get_settings.cache_clear()
+    session_module.reset_state()
+    with TestClient(create_app()) as c:
+        yield c
+    session_module.reset_state()
+    get_settings.cache_clear()

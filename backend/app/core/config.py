@@ -9,7 +9,7 @@ from __future__ import annotations
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -26,7 +26,11 @@ class Settings(BaseSettings):
     log_format: Literal["json", "console"] = "json"
     timezone: str = "Asia/Kolkata"
     api_prefix: str = "/api/v1"
-    cors_origins: list[str] = Field(default_factory=lambda: ["http://localhost:3000"])
+    #: Comma-separated origins, e.g. "https://a.example,https://b.example".
+    #: Deliberately a ``str``: pydantic-settings JSON-decodes complex types
+    #: straight from the environment *before* any validator runs, so a bare URL
+    #: in CORS_ORIGINS raises SettingsError at import time.
+    cors_origins: str = "http://localhost:3000"
 
     # ---- database ---------------------------------------------------------
     # SQLite by default; set DATABASE_URL=postgresql+psycopg://... for production.
@@ -63,8 +67,20 @@ class Settings(BaseSettings):
     #: Enable the mock provider. Forced on when no real key is configured.
     enable_mock_provider: bool = False
 
+    # ---- manual refresh (pull-to-refresh) --------------------------------
+    #: A user-triggered refresh only hits the provider if the newest data is
+    #: already older than this. Below it we serve what we have — a pull is a
+    #: request for the freshest *available* answer, not a licence to spend.
+    manual_refresh_min_age_seconds: int = 420
+    #: Refuse to spend on manual refreshes below this share of daily budget,
+    #: so a burst of pulls can never starve scheduled ingestion.
+    manual_refresh_budget_floor: float = 0.15
+
     # ---- scheduler --------------------------------------------------------
     scheduler_enabled: bool = True
+    #: Background poll cadence. Each tick costs 2 upstream calls, so this and
+    #: ``api_daily_request_budget`` are two views of one constraint:
+    #: 86400 / interval * 2 must leave headroom for manual refreshes.
     ingest_interval_seconds: int = 90
     observation_interval_seconds: int = 300
     calibration_interval_seconds: int = 900
@@ -72,7 +88,11 @@ class Settings(BaseSettings):
 
     # ---- prediction defaults (per-crossing values override these) ---------
     prediction_horizon_minutes: int = 120
-    max_sighting_age_seconds: int = 900
+    #: Sightings older than this are dropped and the response flagged ``stale``.
+    #: MUST exceed ``ingest_interval_seconds``, or every response between two
+    #: ticks is stale by construction — which is what the first production
+    #: deploy did at a 30-minute cadence. Enforced below, not left to docs.
+    max_sighting_age_seconds: int = 2700
     blend_horizon_km: float = 12.0
     default_speed_kmph: float = 50.0
     retention_days: int = 30
@@ -91,12 +111,34 @@ class Settings(BaseSettings):
                     return "postgresql+psycopg://" + v[len(prefix):]
         return v
 
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def _split_origins(cls, v: object) -> object:
-        if isinstance(v, str):
-            return [o.strip() for o in v.split(",") if o.strip()]
-        return v
+    @property
+    def cors_origin_list(self) -> list[str]:
+        """Origins as a list, accepting a bare URL, a comma-separated string or
+        a JSON array — all three occur in hosting dashboards."""
+        raw = self.cors_origins.strip()
+        if raw.startswith("["):
+            import json
+
+            try:
+                decoded = json.loads(raw)
+            except ValueError:
+                return []
+            return [str(o).strip() for o in decoded if str(o).strip()]
+        return [o.strip() for o in raw.split(",") if o.strip()]
+
+    @property
+    def scheduled_daily_call_estimate(self) -> int:
+        """Upstream calls/day consumed by the scheduler alone."""
+        if self.ingest_interval_seconds <= 0:
+            return 0
+        return int(86_400 / self.ingest_interval_seconds) * 2
+
+    @model_validator(mode="after")
+    def _staleness_must_outlive_the_poll_interval(self) -> Settings:
+        floor = int(self.ingest_interval_seconds * 1.5)
+        if self.max_sighting_age_seconds < floor:
+            object.__setattr__(self, "max_sighting_age_seconds", floor)
+        return self
 
     @property
     def is_sqlite(self) -> bool:
