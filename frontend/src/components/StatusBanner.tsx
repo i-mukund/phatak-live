@@ -5,11 +5,16 @@ interface Props {
   isOffline: boolean;
   stale: boolean;
   degraded: boolean;
+  /** Transient message from a pull that did not fetch — takes precedence,
+   *  because the user just asked a question and deserves the answer. */
+  notice?: string | null;
 }
 
 /** Honest, quiet warnings. Never a full-screen error over usable data. */
-export function StatusBanner({ error, isOffline, stale, degraded }: Props) {
-  const message = isOffline
+export function StatusBanner({ error, isOffline, stale, degraded, notice }: Props) {
+  const message = notice
+    ? notice
+    : isOffline
     ? "You're offline — showing the last prediction we downloaded."
     : error
       ? error

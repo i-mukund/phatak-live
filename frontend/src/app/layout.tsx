@@ -4,14 +4,14 @@ import './globals.css';
 import { RegisterServiceWorker } from '@/components/RegisterServiceWorker';
 
 export const metadata: Metadata = {
-  title: 'Phatak Live — Siraspur Railway Crossing',
+  title: 'Phaatak — Siraspur Railway Crossing',
   description:
     'Should you leave now, or will the gate close before you get there? Live gate predictions for the Siraspur railway crossing.',
-  applicationName: 'Phatak Live',
+  applicationName: 'Phaatak',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'Phatak Live',
+    title: 'Phaatak',
     statusBarStyle: 'black-translucent',
   },
   formatDetection: { telephone: false },
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
     apple: [{ url: '/apple-touch-icon.png', sizes: '180x180' }],
   },
   openGraph: {
-    title: 'Phatak Live',
+    title: 'Phaatak',
     description: 'Know before you go. Live railway crossing predictions.',
     type: 'website',
   },

@@ -76,6 +76,21 @@ export interface LeaveAdvice {
   reason: string;
 }
 
+export type RefreshOutcome =
+  | 'refreshed'
+  | 'already_fresh'
+  | 'budget_protected'
+  | 'provider_failed';
+
+export interface RefreshResult {
+  refreshed: boolean;
+  outcome: RefreshOutcome;
+  reason: string;
+  data_age_seconds: number | null;
+  next_refresh_at: string | null;
+  status: CrossingStatus;
+}
+
 export interface CrossingStatus {
   crossing: CrossingSummary;
   generated_at: string;

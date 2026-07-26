@@ -2,8 +2,8 @@ import type { MetadataRoute } from 'next';
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: 'Phatak Live — Railway Crossing Predictions',
-    short_name: 'Phatak Live',
+    name: 'Phaatak — Railway Crossing Predictions',
+    short_name: 'Phaatak',
     description:
       'Should you leave now, or will the gate close before you get there? Live railway level-crossing predictions.',
     start_url: '/',

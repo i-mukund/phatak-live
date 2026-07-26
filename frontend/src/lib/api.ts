@@ -1,4 +1,4 @@
-import type { CrossingStatus } from './types';
+import type { CrossingStatus, RefreshResult } from './types';
 
 /**
  * Server-side base URL. Browser requests go through the Next route handler at
@@ -56,6 +56,24 @@ export async function fetchStatusFromProxy(
     throw new ApiError(`Status request failed (${response.status})`, response.status);
   }
   return (await response.json()) as CrossingStatus;
+}
+
+/** Pull-to-refresh: asks the server for the freshest *available* status. */
+export async function requestRefresh(
+  slug: string,
+  travelSeconds?: number | null,
+  signal?: AbortSignal,
+): Promise<RefreshResult> {
+  const query = travelSeconds ? `?travel_seconds=${travelSeconds}` : '';
+  const response = await fetch(`/api/refresh/${slug}${query}`, {
+    method: 'POST',
+    signal,
+    headers: { Accept: 'application/json' },
+  });
+  if (!response.ok) {
+    throw new ApiError(`Refresh failed (${response.status})`, response.status);
+  }
+  return (await response.json()) as RefreshResult;
 }
 
 export async function sendGateReport(slug: string, state: 'open' | 'closed'): Promise<void> {

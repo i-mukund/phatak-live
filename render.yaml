@@ -47,9 +47,18 @@ services:
       - key: SCHEDULER_ENABLED
         value: "true"
 
-      # 30 minutes fits the RailRadar free quota (100 requests/day) exactly:
-      # 48 ticks × 2 board calls, leaving headroom for near-gate enrichment.
+      # 45 minutes: 32 ticks/day x 2 board calls = 64 of the 100-call free
+      # quota, deliberately leaving ~36 calls/day for user-triggered
+      # pull-to-refresh. A 30-minute cadence consumed the entire allowance and
+      # left the refresh button with nothing to spend.
       - key: INGEST_INTERVAL_SECONDS
-        value: "1800"
+        value: "2700"
       - key: API_DAILY_REQUEST_BUDGET
         value: "100"
+      # Floored to 1.5x the poll interval by Settings; set explicitly so the
+      # relationship is visible to whoever edits the cadence next.
+      - key: MAX_SIGHTING_AGE_SECONDS
+        value: "4050"
+      # A pull only spends if the newest data is older than this.
+      - key: MANUAL_REFRESH_MIN_AGE_SECONDS
+        value: "420"

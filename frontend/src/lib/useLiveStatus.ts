@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { fetchStatusFromProxy } from './api';
+import { fetchStatusFromProxy, requestRefresh } from './api';
 import type { CrossingStatus } from './types';
 
 interface Options {
@@ -18,7 +18,11 @@ interface LiveStatus {
   isRefreshing: boolean;
   isOffline: boolean;
   lastFetchedAt: number | null;
+  /** Passive re-read of the cached status. */
   refresh: () => void;
+  /** User-initiated: asks the server to go and look. Resolves when done so a
+   *  pull gesture can hold its spinner for the real duration. */
+  pullRefresh: () => Promise<string | null>;
 }
 
 const MAX_BACKOFF_MS = 120_000;
@@ -117,7 +121,34 @@ export function useLiveStatus({
     };
   }, [load, intervalMs]);
 
-  return { status, error, isRefreshing, isOffline, lastFetchedAt, refresh: () => void load() };
+  const pullRefresh = useCallback(async (): Promise<string | null> => {
+    setIsRefreshing(true);
+    try {
+      const result = await requestRefresh(slug, travelSeconds);
+      setStatus(result.status);
+      setError(null);
+      failures.current = 0;
+      setLastFetchedAt(Date.now());
+      // Only surface a message when the server did something other than the
+      // obvious; "Updated" on every pull is noise.
+      return result.outcome === 'refreshed' ? null : result.reason;
+    } catch {
+      setError('Could not reach the server. Showing the last known prediction.');
+      return 'Refresh failed — showing the last known prediction.';
+    } finally {
+      setIsRefreshing(false);
+    }
+  }, [slug, travelSeconds]);
+
+  return {
+    status,
+    error,
+    isRefreshing,
+    isOffline,
+    lastFetchedAt,
+    refresh: () => void load(),
+    pullRefresh,
+  };
 }
 
 /** Ticks once per second, purely to drive countdown re-renders. */
