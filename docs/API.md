@@ -196,10 +196,48 @@ Crowd report from someone standing at the gate — the only signal that sees fre
 POST /api/v1/crossings/siraspur/reports
 Content-Type: application/json
 
-{ "state": "closed", "note": "long goods train" }
+{ "state": "closed", "note": "long goods train", "client_id": "b3f1…" }
 ```
 
-`201` → `{ "id": 42, "state": "closed", "reported_at": "...", "thanks": "..." }`
+```json
+{
+  "accepted": true,
+  "outcome": "unexplained",
+  "message": "Thanks — we didn't predict this one. Unexplained closures are usually freight…",
+  "reported_at": "2026-07-26T18:26:38+05:30",
+  "next_report_at": "2026-07-26T18:36:38+05:30",
+  "corroborations": 2,
+  "id": 42
+}
+```
+
+| `outcome` | Meaning |
+|---|---|
+| `corroborated` | Falls inside a closure we predicted — the model was right |
+| `unexplained` | Nothing we know about closed this gate; feeds `freight_risk` |
+| `recorded` | An "open" report; logged, carries no freight signal |
+| `duplicate` | Same client, same crossing, inside the cooldown — not counted again |
+| `rate_limited` | Per-IP hourly ceiling hit |
+
+**Clients must honour `accepted`.** Show `message`; do not render a refusal as a
+successful report. Use `next_report_at` to re-enable the control — the state
+must not be terminal, since one person legitimately crosses the same gate twice
+a day.
+
+`client_id` is a random id the browser generates and keeps in `localStorage`.
+The server stores only a salted SHA-256 of it, alongside a hash of the client
+IP used solely for rate limiting. It identifies a browser, not a person; there
+is no account or cookie.
+
+### Why abuse is uninteresting here
+
+Rate limits buy time; the real defence is limiting what the data may influence.
+Crowd reports can only **corroborate a predicted closure** or **flag an
+unexplained one**. Timing offsets are driven exclusively by provider
+`actualArrival` times, which cannot be forged through this endpoint. The worst
+outcome of a successful campaign is an inflated freight-risk percentage — it
+cannot move a single countdown. There is a test asserting exactly that
+(`test_crowd_reports_cannot_move_a_calibration_offset`).
 
 ## `GET /crossings/{slug}/accuracy?days=14`
 

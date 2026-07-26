@@ -1,4 +1,5 @@
-import type { CrossingStatus, RefreshResult } from './types';
+import { getClientId } from './clientId';
+import type { CrossingStatus, GateReportResult, RefreshResult } from './types';
 
 /**
  * Server-side base URL. Browser requests go through the Next route handler at
@@ -76,10 +77,17 @@ export async function requestRefresh(
   return (await response.json()) as RefreshResult;
 }
 
-export async function sendGateReport(slug: string, state: 'open' | 'closed'): Promise<void> {
-  await fetch(`/api/report/${slug}`, {
+export async function sendGateReport(
+  slug: string,
+  state: 'open' | 'closed',
+): Promise<GateReportResult> {
+  const response = await fetch(`/api/report/${slug}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ state }),
+    body: JSON.stringify({ state, client_id: getClientId() }),
   });
+  if (!response.ok) {
+    throw new ApiError(`Report failed (${response.status})`, response.status);
+  }
+  return (await response.json()) as GateReportResult;
 }

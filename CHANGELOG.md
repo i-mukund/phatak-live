@@ -4,6 +4,33 @@ All notable changes to this project are documented here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [1.3.0] — 2026-07-26
+
+### Added
+
+- **System-following light/dark theme.** Flips with `prefers-color-scheme`
+  through CSS variables; no component carries a `dark:` variant. Status colours
+  are per-theme — the dark-mode green sits at 1.9:1 on white — and every colour
+  now clears WCAG AA on its own surface.
+- **Keep-alive workflow.** A scheduled GitHub Action pings `/health/live` every
+  ten minutes so the free-tier API does not sleep. No external account.
+- **Crowd report hardening.** Per-client cooldown, per-IP hourly ceiling,
+  corroboration counting across distinct clients, and hashed identifiers
+  (the raw client id is never stored). Migration `d72a10reports`.
+
+### Fixed
+
+- The report control was terminal: after one tap it showed a thank-you forever,
+  so the same gate could never be reported twice. It now counts down and
+  restores itself.
+- Crowd reports never reached the model at all. They wrote `observed_close_at`,
+  but grading matched only on `observed_pass_at`, and `is_unexplained` was never
+  set anywhere — so `freight_risk` was permanently 0 and the UI's claim that
+  reports improve predictions was false. Reports now drive the freight signal.
+- `freight_risk` bucketed observations by row-insert time rather than by when
+  the closure was observed, which files backfilled evidence under the wrong hour.
+- Dark-mode muted text sat at 3.95:1, below AA; now 6.2:1.
+
 ## [1.2.0] — 2026-07-26
 
 ### Added

@@ -276,7 +276,12 @@ class GateReport(TimestampMixin, Base):
     crossing_id: Mapped[int] = mapped_column(ForeignKey("crossings.id", ondelete="CASCADE"))
     state: Mapped[str] = mapped_column(String(10))
     reported_at: Mapped[datetime] = mapped_column(UtcDateTime, index=True)
-    client_hash: Mapped[str | None] = mapped_column(String(64))
+    #: SHA-256 of a client-generated id. We never store the id itself, and it
+    #: identifies a browser, not a person.
+    client_hash: Mapped[str | None] = mapped_column(String(64), index=True)
+    #: SHA-256 of the client IP, salted. Only used for rate limiting, and only
+    #: as a fallback when a client mints a fresh id.
+    ip_hash: Mapped[str | None] = mapped_column(String(64), index=True)
     note: Mapped[str | None] = mapped_column(String(280))
 
 

@@ -113,11 +113,22 @@ class TestStatus:
 class TestReports:
     def test_a_user_report_is_accepted(self, client):
         response = client.post(
-            "/api/v1/crossings/siraspur/reports", json={"state": "closed",
-                                                        "note": "long freight"}
+            "/api/v1/crossings/siraspur/reports",
+            json={"state": "closed", "note": "long freight", "client_id": "test-client"},
         )
         assert response.status_code == 201
-        assert response.json()["state"] == "closed"
+        body = response.json()
+        assert body["accepted"] is True
+        # Nothing predicted this closure, so it is the freight signal.
+        assert body["outcome"] in {"unexplained", "corroborated"}
+        assert body["next_report_at"]
+
+    def test_an_immediate_second_tap_is_declined_not_double_counted(self, client):
+        payload = {"state": "closed", "client_id": "same-browser"}
+        client.post("/api/v1/crossings/siraspur/reports", json=payload)
+        second = client.post("/api/v1/crossings/siraspur/reports", json=payload).json()
+        assert second["accepted"] is False
+        assert second["outcome"] == "duplicate"
 
     def test_an_invalid_state_is_rejected(self, client):
         assert client.post(

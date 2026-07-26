@@ -109,13 +109,23 @@ class RefreshResultOut(ApiModel):
 class GateReportIn(ApiModel):
     state: str = Field(pattern="^(open|closed)$")
     note: str | None = Field(default=None, max_length=280)
+    #: Random id generated and stored by the browser. Hashed server-side and
+    #: never stored raw; identifies a browser for deduplication, not a person.
+    client_id: str | None = Field(default=None, max_length=64)
 
 
 class GateReportOut(ApiModel):
-    id: int
-    state: str
+    accepted: bool
+    outcome: str = Field(
+        examples=["corroborated", "unexplained", "duplicate", "rate_limited"]
+    )
+    message: str
     reported_at: ISTDateTime
-    thanks: str = "Recorded — this improves predictions for everyone."
+    #: When this client may report again. Drives the button cooldown.
+    next_report_at: ISTDateTime | None = None
+    #: Distinct clients reporting the same state in the corroboration window.
+    corroborations: int = 0
+    id: int | None = None
 
 
 class AccuracyOut(ApiModel):

@@ -24,6 +24,7 @@ from app.services.learning.engine import LearningEngine
 from app.services.learning.geometry import GeometryCalibrator
 from app.services.prediction.engine import PredictionEngine
 from app.services.refresh_service import RefreshService
+from app.services.report_service import ReportService
 from app.services.status_service import StatusService
 
 
@@ -39,6 +40,7 @@ class Container:
     geometry: GeometryCalibrator
     ingest: IngestService
     refresh: RefreshService
+    reports: ReportService
     status: StatusService
     crossings: CrossingService
     started_at: datetime
@@ -70,6 +72,7 @@ def build_container(settings: Settings, clock: Clock | None = None) -> Container
         clock=clock,
     )
     refresh = RefreshService(ingest=ingest, settings=settings, budget=budget)
+    reports = ReportService(settings=settings)
     status = StatusService(
         engine=engine,
         learning=learning,
@@ -87,6 +90,7 @@ def build_container(settings: Settings, clock: Clock | None = None) -> Container
         geometry=geometry,
         ingest=ingest,
         refresh=refresh,
+        reports=reports,
         status=status,
         crossings=CrossingService(),
         started_at=clock.now(),

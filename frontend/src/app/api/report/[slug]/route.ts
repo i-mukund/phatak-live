@@ -24,7 +24,10 @@ export async function POST(
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ state: payload.state }),
+        body: JSON.stringify({
+          state: payload.state,
+          client_id: typeof payload.client_id === 'string' ? payload.client_id : null,
+        }),
         signal: AbortSignal.timeout(8000),
       },
     );

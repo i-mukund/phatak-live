@@ -91,6 +91,23 @@ export interface RefreshResult {
   status: CrossingStatus;
 }
 
+export type ReportOutcome =
+  | 'recorded'
+  | 'corroborated'
+  | 'unexplained'
+  | 'duplicate'
+  | 'rate_limited';
+
+export interface GateReportResult {
+  accepted: boolean;
+  outcome: ReportOutcome;
+  message: string;
+  reported_at: string;
+  next_report_at: string | null;
+  corroborations: number;
+  id: number | null;
+}
+
 export interface CrossingStatus {
   crossing: CrossingSummary;
   generated_at: string;

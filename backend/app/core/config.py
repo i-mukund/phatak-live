@@ -19,7 +19,7 @@ class Settings(BaseSettings):
     )
 
     # ---- application ------------------------------------------------------
-    app_name: str = "Phatak Live"
+    app_name: str = "Phaatak"
     environment: Literal["development", "test", "production"] = "development"
     debug: bool = False
     log_level: str = "INFO"
@@ -75,6 +75,18 @@ class Settings(BaseSettings):
     #: Refuse to spend on manual refreshes below this share of daily budget,
     #: so a burst of pulls can never starve scheduled ingestion.
     manual_refresh_budget_floor: float = 0.15
+
+    # ---- crowd reports ---------------------------------------------------
+    #: One report per client, per crossing, per this window. A person standing
+    #: at a shut gate will tap once; tapping again 30 seconds later tells us
+    #: nothing new and would double-count the same closure.
+    report_cooldown_seconds: int = 600
+    #: Fallback cap keyed on client IP, for when localStorage is cleared to
+    #: mint a fresh identity.
+    report_ip_hourly_limit: int = 12
+    #: Reports of the same state within this window are treated as describing
+    #: the same event, and corroborate rather than duplicate each other.
+    report_corroboration_window_seconds: int = 900
 
     # ---- scheduler --------------------------------------------------------
     scheduler_enabled: bool = True

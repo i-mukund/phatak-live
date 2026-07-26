@@ -389,22 +389,39 @@ class LearningEngine:
 
         Surfaced as a risk band, never as a countdown — we will not invent a
         train we cannot see.
+
+        Bucketing uses the instant the closure was *observed*, not the row's
+        insert time: those coincide in steady state but diverge on backfill or
+        replay, which would silently file evidence under the wrong hour.
         """
         hour = to_ist(now).hour
         since = now - timedelta(days=30)
         rows = list(
             session.scalars(
-                select(Observation).where(
-                    Observation.crossing_id == crossing_id,
-                    Observation.created_at >= since,
-                )
+                select(Observation).where(Observation.crossing_id == crossing_id)
             )
         )
-        same_hour = [o for o in rows if to_ist(o.created_at).hour == hour]
+        same_hour = [
+            o for o in rows
+            if (moment := _observed_at(o)) is not None
+            and moment >= since
+            and to_ist(moment).hour == hour
+        ]
         if len(same_hour) < 5:
             return 0.0
         unexplained = sum(1 for o in same_hour if o.is_unexplained)
         return round(unexplained / len(same_hour), 3)
+
+
+def _observed_at(observation: Observation) -> datetime | None:
+    """When the observed event happened, preferring real observation times over
+    the row's insert timestamp."""
+    return (
+        observation.observed_close_at
+        or observation.observed_pass_at
+        or observation.observed_open_at
+        or observation.created_at
+    )
 
 
 def _ewma(previous: float, sample: float, alpha: float) -> float:

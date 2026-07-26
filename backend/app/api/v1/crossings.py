@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Query, Response
+from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_container, get_db, get_now, require_admin
@@ -144,22 +144,43 @@ async def refresh_status(
     status_code=201,
     summary="Report what the gate is actually doing",
     description=(
-        "A person standing at the gate is the highest-quality sensor we have — "
-        "especially for freight, which no public data source exposes."
+        "A person standing at the gate is the only sensor that sees freight, "
+        "which no public data source publishes.\n\n"
+        "Unauthenticated, so it is guarded by a per-client cooldown, a per-IP "
+        "hourly ceiling, and corroboration counting. Critically, a report can "
+        "only corroborate a predicted closure or flag an unexplained one — it "
+        "can never move a timing offset, so abuse cannot shift a countdown. "
+        "`accepted` is false for duplicates and rate-limited callers; show "
+        "`message` rather than assuming success."
     ),
 )
 def report_gate(
     slug: str,
     payload: GateReportIn,
+    request: Request,
     container: Container = Depends(get_container),
     session: Session = Depends(get_db),
     now: datetime = Depends(get_now),
 ) -> GateReportOut:
     crossing = container.crossings.get_by_slug(session, slug)
-    report = container.learning.record_user_report(
-        session, crossing.id, payload.state, now, note=payload.note
+    result = container.reports.submit(
+        session,
+        crossing,
+        payload.state,
+        now,
+        client_id=payload.client_id,
+        client_ip=request.client.host if request.client else None,
+        note=payload.note,
     )
-    return GateReportOut(id=report.id, state=report.state, reported_at=report.reported_at)
+    return GateReportOut(
+        accepted=result.accepted,
+        outcome=result.outcome.value,
+        message=result.message,
+        reported_at=now,
+        next_report_at=result.next_report_at,
+        corroborations=result.corroborations,
+        id=result.report_id,
+    )
 
 
 @router.get(
